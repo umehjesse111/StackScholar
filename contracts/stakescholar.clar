@@ -160,4 +160,33 @@
   (map-get? scholarships { id: scholarship-id })
 )
 
-
+;; New public function to delete unclaimed scholarships
+(define-public (delete-scholarship (scholarship-id uint))
+  (let 
+    (
+      (scholarship (unwrap! 
+        (map-get? scholarships { id: scholarship-id }) 
+        ERR-SCHOLARSHIP-NOT-FOUND
+      ))
+    )
+    
+    ;; Only contract owner can delete scholarships
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    
+    ;; Ensure scholarship is unclaimed
+    (asserts! 
+      (not (get is-claimed scholarship)) 
+      ERR-ALREADY-CLAIMED
+    )
+    
+    ;; Reduce total scholarship funds
+    (var-set total-scholarship-funds 
+      (- (var-get total-scholarship-funds) (get amount scholarship))
+    )
+    
+    ;; Remove the scholarship from the map
+    (map-delete scholarships { id: scholarship-id })
+    
+    (ok scholarship-id)
+  )
+)
